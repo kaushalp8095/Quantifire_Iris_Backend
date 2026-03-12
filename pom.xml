@@ -99,6 +99,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
+		
+		<dependency>
+    <groupId>com.project</groupId>
+    <artifactId>common</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/libs/common.jar</systemPath> 
+</dependency>
 
 	</dependencies>
 
@@ -116,6 +124,13 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <configuration>
+        <includeSystemScope>true</includeSystemScope>
+    </configuration>
+</plugin>
 		</plugins>
 	</build>
 
