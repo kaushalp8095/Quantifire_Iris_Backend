@@ -25,7 +25,7 @@ public class agencySecurityConfig {
             .cors(cors -> cors.configurationSource(request -> {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOrigins(List.of("http://127.0.0.1:5501", "http://localhost:5501",
-                		                          "https://quantifire-iris-frontend.vercel.app/"));
+                		                          "https://quantifire-iris-frontend.vercel.app"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setAllowCredentials(true);
