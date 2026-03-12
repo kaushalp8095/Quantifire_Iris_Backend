@@ -1,0 +1,19 @@
+package com.project.agency.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                // Yahan apna pura computer path dein
+                .addResourceLocations(
+                		"file:uploads/",
+                		"file:///C:/Users/DELL/eclipse-workspace/Quantifyre_Iris_SuperAdmin/uploads/",
+                		"file:///C:/Users/DELL/eclipse-workspace/Quantifyre_Iris_SuperAdmin/uploads/logos");
+    }
+
+}
