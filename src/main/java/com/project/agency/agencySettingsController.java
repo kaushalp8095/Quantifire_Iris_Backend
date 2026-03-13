@@ -1,9 +1,5 @@
 package com.project.agency;
 
-import java.io.File; 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +15,7 @@ import com.project.common.models.agencyLoginHistory;
 import com.project.common.models.agencyNotificationSettings;
 import com.project.common.service.AgencyService;
 import com.project.common.service.EmailService;
+import com.project.common.service.SupabaseStorageService; // 👈 Naya Service Import
 
 @RestController
 @RequestMapping("/api/agency") 
@@ -29,13 +26,14 @@ public class agencySettingsController {
     
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private SupabaseStorageService storageService; // 👈 S3 Service Inject kiya
     
     private Map<String, String> otpCache = new HashMap<>();
-    
-    private final String UPLOAD_DIR = "C:/Users/user/eclipse-workspace/Quantifyre_Iris_SuperAdmin/uploads/logos/";
 
     // ==========================================
-    // 1. GET PROFILE DATA (Original)
+    // 1. GET PROFILE DATA
     // ==========================================
     @GetMapping("/profile")
     public ResponseEntity<?> getAgencyProfile(@RequestParam String email) {
@@ -52,7 +50,7 @@ public class agencySettingsController {
     }
 
     // ==========================================
-    // 2. UPDATE PROFILE DATA & LOGO (Original)
+    // 2. UPDATE PROFILE DATA & LOGO (SUPABASE S3)
     // ==========================================
     @PostMapping("/update-profile")
     public ResponseEntity<?> updateAgencyProfile(
@@ -63,12 +61,12 @@ public class agencySettingsController {
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             
             adminAddAgenciesModel updatedData = mapper.readValue(agencyJson, adminAddAgenciesModel.class);
-            
             Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(updatedData.getEmail());
             
             if (agencyOpt.isPresent()) {
                 adminAddAgenciesModel existingAgency = agencyOpt.get();
                 
+                // Fields Update
                 existingAgency.setOwnerName(updatedData.getOwnerName());
                 existingAgency.setPhoneNumber(updatedData.getPhoneNumber());
                 existingAgency.setAddress(updatedData.getAddress());
@@ -77,35 +75,21 @@ public class agencySettingsController {
                 existingAgency.setCity(updatedData.getCity());
                 existingAgency.setPincode(updatedData.getPincode());
                 
-                // Logo Update Logic
+                // --- 🟢 SUPABASE S3 LOGO UPLOAD ---
                 if (logo != null && !logo.isEmpty()) {
-                    
-                    // --- 🔴 DELETE OLD LOGO (Fixed Pathing) ---
-                    String oldLogoFileName = existingAgency.getAgencyLogo();
-                    if (oldLogoFileName != null && !oldLogoFileName.trim().isEmpty()) {
-                        File oldFile = new File(UPLOAD_DIR + oldLogoFileName);
-                        if (oldFile.exists() && oldFile.isFile()) {
-                            if (oldFile.delete()) {
-                                System.out.println("✅ Purana logo delete ho gaya: " + oldLogoFileName);
-                            } else {
-                                System.err.println("❌ Purana logo delete nahi hua: File is in use or locked");
-                            }
-                        } else {
-                            System.out.println("⚠️ Purani file nahi mili, sayad pehle hi delete ho chuki hai: " + oldLogoFileName);
-                        }
-                    }
-                    
-                    // --- SAVE NEW LOGO ---
-                    String fileName = System.currentTimeMillis() + "_" + logo.getOriginalFilename();
-                    Path path = Paths.get(UPLOAD_DIR + fileName);
-                    Files.createDirectories(path.getParent()); 
-                    Files.write(path, logo.getBytes());
-                    
-                    existingAgency.setAgencyLogo(fileName);
+                    // Seedha cloud par upload karega aur Public URL laayega
+                    String publicImageUrl = storageService.uploadFile(logo, "agency-logos");
+                    existingAgency.setAgencyLogo(publicImageUrl);
                 }
                 
+                // SQL + MongoDB dono mein save karega (via AgencyService)
                 agencyService.saveAgency(existingAgency);
-                return ResponseEntity.ok(Map.of("message", "Profile updated successfully!", "status", "success"));
+                
+                return ResponseEntity.ok(Map.of(
+                    "message", "Profile updated successfully!", 
+                    "status", "success",
+                    "logoUrl", existingAgency.getAgencyLogo()
+                ));
             } else {
                 return ResponseEntity.status(404).body(Map.of("error", "Agency not found"));
             }
@@ -115,24 +99,19 @@ public class agencySettingsController {
         }
     }
 
-
     // =========================================================
-    // 3. SECURITY APIS (NEWLY ADDED)
+    // 3. SECURITY APIS
     // =========================================================
 
-    // A. CHANGE PASSWORD
     @PostMapping("/security/change-password")
     public ResponseEntity<?> changePassword(@RequestBody agencySecurityRequestDto request) {
         try {
             Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(request.getEmail());
             if (agencyOpt.isPresent()) {
                 adminAddAgenciesModel agency = agencyOpt.get();
-
-                // Note: Agar aap BCrypt use nahi kar rahe toh simple text match.
-                // Best practice is to use BCryptPasswordEncoder in future.
                 if (agency.getPassword() != null && agency.getPassword().equals(request.getCurrentPassword())) {
                     agency.setPassword(request.getNewPassword()); 
-                    agencyService.saveAgency(agency); // Save using your existing service
+                    agencyService.saveAgency(agency);
                     return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
                 } else {
                     return ResponseEntity.status(401).body(Map.of("message", "Incorrect current password"));
@@ -144,7 +123,6 @@ public class agencySettingsController {
         }
     }
 
-    // B. GET SECURITY PREFERENCES (For toggles)
     @GetMapping("/security/preferences")
     public ResponseEntity<?> getPreferences(@RequestParam String email) {
         Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(email);
@@ -159,14 +137,11 @@ public class agencySettingsController {
         return ResponseEntity.status(404).body(Map.of("error", "Agency not found"));
     }
 
-    // C. UPDATE SECURITY PREFERENCES (When toggles are changed)
     @PostMapping("/security/update-preferences")
     public ResponseEntity<?> updatePreferences(@RequestBody agencySecurityRequestDto request) {
         Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(request.getEmail());
         if (agencyOpt.isPresent()) {
             adminAddAgenciesModel agency = agencyOpt.get();
-            
-            // Only update fields that are provided
             if (request.getIs2faEnabled() != null) agency.setIs2faEnabled(request.getIs2faEnabled());
             if (request.getTfaMethod() != null) agency.setTfaMethod(request.getTfaMethod());
             if (request.getLoginAlertsEnabled() != null) agency.setLoginAlertsEnabled(request.getLoginAlertsEnabled());
@@ -177,121 +152,86 @@ public class agencySettingsController {
         return ResponseEntity.status(404).body(Map.of("error", "Agency not found"));
     }
 
-    // D. GET RECENT LOGIN HISTORY
     @GetMapping("/security/login-history")
     public ResponseEntity<List<agencyLoginHistory>> getLoginHistory(@RequestParam String email) {
         List<agencyLoginHistory> history = agencyService.getLoginHistory(email);
         return ResponseEntity.ok(history);
     }
     
- // =========================================================
-    // 1. SEND OTP API
-    // =========================================================
     @PostMapping("/security/request-otp")
     public ResponseEntity<?> requestOtp(@RequestBody Map<String, String> request) {
-        String method = request.get("method"); // "email" ya "mobile"
-        String target = request.get("target"); // email id ya phone number
+        String method = request.get("method");
+        String target = request.get("target");
         
         if (target == null || target.trim().isEmpty()) {
             return ResponseEntity.status(400).body(Map.of("message", "Target address is required"));
         }
 
-        // 6-Digit Random OTP Generate karein
         String otp = String.valueOf((int)((Math.random() * 900000) + 100000));
-        
-        // OTP ko memory mein save karein
         otpCache.put(target, otp); 
         
         if ("email".equalsIgnoreCase(method)) {
-            // Asli Email bhejein
             emailService.sendOtpEmail(target, otp);
-            return ResponseEntity.ok(Map.of("message", "OTP sent successfully to " + target));
+            return ResponseEntity.ok(Map.of("message", "OTP sent to " + target));
         } else {
-            // Mobile (SMS) abhi integrate nahi hai, toh console me print karenge testing ke liye
             System.out.println("📱 SMS OTP for " + target + " is: " + otp);
-            return ResponseEntity.ok(Map.of("message", "SMS feature coming soon! Check backend console for OTP."));
+            return ResponseEntity.ok(Map.of("message", "Check console for OTP (SMS mode)"));
         }
     }
 
-    // =========================================================
-    // 2. VERIFY OTP & ENABLE 2FA API
-    // =========================================================
     @PostMapping("/security/verify-2fa")
     public ResponseEntity<?> verify2fa(@RequestBody Map<String, String> request) {
-        String target = request.get("target"); // jo email/phone user ne daala tha
-        String userOtp = request.get("otp");   // jo OTP user ne form mein daala
-        String loggedInEmail = request.get("email"); // Current logged in agency ki email
+        String target = request.get("target");
+        String userOtp = request.get("otp");
+        String loggedInEmail = request.get("email");
 
-        // Check karein ki OTP sahi hai ya nahi
         if (otpCache.containsKey(target) && otpCache.get(target).equals(userOtp)) {
-            
-            // OTP Sahi hai! Ab Database mein 2FA ON karein
             Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(loggedInEmail);
-            
             if (agencyOpt.isPresent()) {
                 adminAddAgenciesModel agency = agencyOpt.get();
                 agency.setIs2faEnabled(true);
-                // Agar email mein @ hai toh email set karo, warna sms set karo
                 agency.setTfaMethod(target.contains("@") ? "email" : "sms");
-                
                 agencyService.saveAgency(agency); 
-                
                 otpCache.remove(target); 
-                return ResponseEntity.ok(Map.of("success", true, "message", "2FA Successfully Activated!"));
+                return ResponseEntity.ok(Map.of("success", true, "message", "2FA Activated!"));
             }
         }
-        
-        return ResponseEntity.status(400).body(Map.of("success", false, "message", "Invalid OTP! Please try again."));
+        return ResponseEntity.status(400).body(Map.of("success", false, "message", "Invalid OTP!"));
     }
-    
- // =======================================================
-    // 1. GET API - Notifications Load Karne Ke Liye
+
+    // =======================================================
+    // 4. NOTIFICATION SETTINGS
     // =======================================================
     @GetMapping("/notifications")
     public ResponseEntity<?> getNotificationSettings(@RequestParam String email) {
         Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(email);
         if (agencyOpt.isPresent()) {
             agencyNotificationSettings settings = agencyOpt.get().getNotificationSettings();
-            
-            // FIX: Agar purane data mein settings null hain, toh default object bhej do
-            if (settings == null) {
-                settings = new agencyNotificationSettings(); 
-            }
+            if (settings == null) settings = new agencyNotificationSettings(); 
             return ResponseEntity.ok(settings);
         }
         return ResponseEntity.status(404).body(Map.of("message", "Agency not found"));
     }
 
-    // =======================================================
-    // 2. DTO Class - Frontend se data pakadne ke liye
-    // =======================================================
+    @PostMapping("/notifications/update")
+    public ResponseEntity<?> updateNotificationSettings(@RequestBody NotifRequest requestData) {
+        Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(requestData.getEmail());
+        if (agencyOpt.isPresent()) {
+            adminAddAgenciesModel agency = agencyOpt.get();
+            agency.setNotificationSettings(requestData.getSettings());
+            agencyService.saveAgency(agency); 
+            return ResponseEntity.ok(Map.of("message", "Notifications updated!"));
+        }
+        return ResponseEntity.status(404).body(Map.of("message", "Agency not found"));
+    }
+
+    // DTO for Notifications
     public static class NotifRequest {
         private String email;
         private agencyNotificationSettings settings;
-        
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public agencyNotificationSettings getSettings() { return settings; }
         public void setSettings(agencyNotificationSettings settings) { this.settings = settings; }
     }
-
-    // =======================================================
-    // 3. POST API - Notifications Save Karne Ke Liye
-    // =======================================================
-    @PostMapping("/notifications/update")
-    public ResponseEntity<?> updateNotificationSettings(@RequestBody NotifRequest requestData) {
-        Optional<adminAddAgenciesModel> agencyOpt = agencyService.findByEmail(requestData.getEmail());
-        
-        if (agencyOpt.isPresent()) {
-            adminAddAgenciesModel agency = agencyOpt.get();
-            
-            // Pura notification settings ek hi baar me replace kar diya
-            agency.setNotificationSettings(requestData.getSettings());
-            
-            agencyService.saveAgency(agency); // Save into Database
-            return ResponseEntity.ok(Map.of("message", "Notifications updated successfully!"));
-        }
-        return ResponseEntity.status(404).body(Map.of("message", "Agency not found"));
-    }
-    
 }
