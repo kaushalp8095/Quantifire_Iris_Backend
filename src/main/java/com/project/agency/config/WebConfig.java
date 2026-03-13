@@ -12,8 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
                 // Yahan apna pura computer path dein
                 .addResourceLocations(
                 		"file:uploads/",
-                		"file:///C:/Users/DELL/eclipse-workspace/Quantifyre_Iris_SuperAdmin/uploads/",
-                		"file:///C:/Users/DELL/eclipse-workspace/Quantifyre_Iris_SuperAdmin/uploads/logos");
+                		"file:uploads/logos/");
     }
 
 }
