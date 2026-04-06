@@ -104,7 +104,7 @@ public class agencyLoginController {
             if (agency.getPassword() != null && agency.getPassword().equals(inputPassword)) {
 
                 // 1. Cookies Setup (Cross-Domain Secure Cookies)
-                setupCookies(response, agency.getEmail());
+            	setupCookies(response, agency.getId().toString());
 
                 // 2. Login History Tracking
                 try {
@@ -181,5 +181,4 @@ public class agencyLoginController {
         // Header mein set karein
         response.setHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
     }
-    
 }
