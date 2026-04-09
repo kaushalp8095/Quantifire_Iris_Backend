@@ -52,7 +52,7 @@ public class agencySecurityConfig {
             .csrf(csrf -> csrf.disable()) // CSRF ko disable karein taaki AJAX chale
             
             .authorizeHttpRequests(auth -> auth
-            		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                     "/api/agency/login",
                     "/api/agency/profile",
