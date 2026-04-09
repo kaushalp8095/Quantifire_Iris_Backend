@@ -87,7 +87,7 @@ public class agencySettingsController {
                 }
                 
                 // 🔴 SQL + MongoDB dono mein save karega (Duplicate Check Service me hoga)
-                agencyService.saveAgency(existingAgency);
+                agencyService.saveAgency(existingAgency, null);
                 
                 return ResponseEntity.ok(Map.of(
                     "message", "Profile updated successfully!", 
@@ -120,7 +120,7 @@ public class agencySettingsController {
                 adminAddAgenciesModel agency = agencyOpt.get();
                 if (agency.getPassword() != null && agency.getPassword().equals(request.getCurrentPassword())) {
                     agency.setPassword(request.getNewPassword()); 
-                    agencyService.saveAgency(agency);
+                    agencyService.saveAgency(agency, null);
                     return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
                 } else {
                     return ResponseEntity.status(401).body(Map.of("message", "Incorrect current password"));
@@ -155,7 +155,7 @@ public class agencySettingsController {
             if (request.getTfaMethod() != null) agency.setTfaMethod(request.getTfaMethod());
             if (request.getLoginAlertsEnabled() != null) agency.setLoginAlertsEnabled(request.getLoginAlertsEnabled());
 
-            agencyService.saveAgency(agency); 
+            agencyService.saveAgency(agency, null); 
             return ResponseEntity.ok(Map.of("message", "Preferences updated"));
         }
         return ResponseEntity.status(404).body(Map.of("error", "Agency not found"));
@@ -207,7 +207,7 @@ public class agencySettingsController {
                 agency.setIs2faEnabled(true);
                 agency.setTfaMethod(target.contains("@") ? "email" : "sms");
                 
-                agencyService.saveAgency(agency); 
+                agencyService.saveAgency(agency, null); 
                 otpCache.remove(target); // Success ke baad delete karo
                 return ResponseEntity.ok(Map.of("success", true, "message", "2FA Activated!"));
             }
@@ -237,7 +237,7 @@ public class agencySettingsController {
         if (agencyOpt.isPresent()) {
             adminAddAgenciesModel agency = agencyOpt.get();
             agency.setNotificationSettings(requestData.getSettings());
-            agencyService.saveAgency(agency); 
+            agencyService.saveAgency(agency, null); 
             return ResponseEntity.ok(Map.of("message", "Notifications updated!"));
         }
         return ResponseEntity.status(404).body(Map.of("message", "Agency not found"));
