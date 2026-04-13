@@ -180,5 +180,34 @@ public class agencyLoginController {
                 
         // Header mein set karein
         response.setHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
+        
+        ResponseCookie loginIndicator = ResponseCookie.from("isAgencyLoggedIn", "true")
+                .secure(true)
+                .path("/")
+                .maxAge(24 * 60 * 60)
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, loginIndicator.toString());
+    }
+    
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutAgency(HttpServletResponse response) {
+        // Cookie ko overwrite karein empty value aur zero expiry ke saath
+        ResponseCookie cookie = ResponseCookie.from("agency_session", "")
+                .httpOnly(true)
+                .secure(true) // Render/Vercel (HTTPS) ke liye true zaroori hai
+                .path("/")
+                .maxAge(0) // 🌟 Turant expire karega
+                .sameSite("None") // Cross-domain (Render to Vercel) ke liye zaroori
+                .build();
+
+        // Header mein cookie set karein
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
+        Map<String, String> resp = new HashMap<>();
+        resp.put("status", "success");
+        resp.put("message", "Logged out successfully");
+        
+        return ResponseEntity.ok(resp);
     }
 }
