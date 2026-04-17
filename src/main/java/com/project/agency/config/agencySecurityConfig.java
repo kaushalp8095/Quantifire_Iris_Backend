@@ -46,7 +46,10 @@ public class agencySecurityConfig {
     public SecurityFilterChain agencyFilterChain(HttpSecurity http) throws Exception {
         http
             // Ab lamba code nahi, bas default CORS customizer call karein jo upar wala bean uthayega
-            .cors(Customizer.withDefaults()) 
+            .cors(Customizer.withDefaults())
+            .sessionManagement(session -> session
+                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS)
+                )
             
             .securityMatcher("/api/agency/**", "/api/integration/**", "/api/top-notifications/**", "/api/agency/ping") 
             .csrf(csrf -> csrf.disable()) // CSRF ko disable karein taaki AJAX chale

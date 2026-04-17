@@ -154,6 +154,7 @@ public class agencyLoginController {
                 respMap.put("message", "Login Successful");
                 respMap.put("agencyName", agency.getAgencyName()); 
                 respMap.put("agencyEmail", agency.getEmail());
+                respMap.put("loginTime", String.valueOf(System.currentTimeMillis()));
                 
                 return ResponseEntity.ok(respMap);
             }
