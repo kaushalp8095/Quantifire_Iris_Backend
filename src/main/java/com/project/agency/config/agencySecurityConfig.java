@@ -48,7 +48,7 @@ public class agencySecurityConfig {
             // Ab lamba code nahi, bas default CORS customizer call karein jo upar wala bean uthayega
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session
-                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS)
+                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
                 )
             
             .securityMatcher("/api/agency/**", "/api/integration/**", "/api/top-notifications/**", "/api/agency/ping") 
