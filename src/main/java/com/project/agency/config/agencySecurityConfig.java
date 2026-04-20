@@ -48,7 +48,7 @@ public class agencySecurityConfig {
             // Ab lamba code nahi, bas default CORS customizer call karein jo upar wala bean uthayega
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session
-                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS)
                 )
             
             .securityMatcher("/api/agency/**", "/api/integration/**", "/api/top-notifications/**", "/api/agency/ping") 
@@ -57,8 +57,24 @@ public class agencySecurityConfig {
             .authorizeHttpRequests(auth -> auth
             	.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
-                		"/api/agency/login",
-                        "/api/agency/ping"
+                    "/api/agency/login",
+                    "/api/agency/profile",
+                    "/api/agency/update-profile",
+                    "/api/agency/register-test", 
+                    "/api/agency/campaigns/**",
+                    "/api/agency/clients/**",
+                    "/api/agency/locations/**",
+                    "/api/agency/dashboard/**",
+                    "/api/agency/reports/**",
+                    "/api/agency/security/**",
+                    "/api/integration/google/**",
+                    "/api/integration/facebook/**",
+                    "/api/integration/status",
+                    "/api/integration/disconnect",
+                    "/api/integration/sync-recent",
+                    "/api/agency/notifications/**",
+                    "/api/top-notifications/**",
+                    "/api/agency/ping"
                 ).permitAll()
                 .anyRequest().authenticated()
             );
