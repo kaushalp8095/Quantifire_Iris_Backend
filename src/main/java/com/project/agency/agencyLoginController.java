@@ -181,14 +181,7 @@ public class agencyLoginController {
                 
         // Header mein set karein
         response.setHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
-        
-        ResponseCookie loginIndicator = ResponseCookie.from("isAgencyLoggedIn", "true")
-                .secure(true)
-                .path("/")
-                .maxAge(24 * 60 * 60)
-                .sameSite("None")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, loginIndicator.toString());
+
     }
     
     @PostMapping("/logout")
