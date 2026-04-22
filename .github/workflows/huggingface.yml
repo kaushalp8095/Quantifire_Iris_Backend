@@ -1,0 +1,22 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main   # agar tumhara branch 'master' hai to yaha master likho
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🤗 Sync to Hugging Face
+        uses: huggingface/hub-sync@v0.1.0
+        with:
+          github_repo_id: kaushalp8095/Quantifire_Iris_Backend
+          huggingface_repo_id: KaushalPatel/quantifyre-backend
+          repo_type: space
+          hf_token: ${{ secrets.HF_TOKEN }}
