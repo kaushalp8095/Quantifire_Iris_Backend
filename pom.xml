@@ -56,10 +56,12 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.project</groupId>
-			<artifactId>common</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+    <groupId>com.project</groupId>
+    <artifactId>common</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/libs/common.jar</systemPath>
+</dependency>
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
