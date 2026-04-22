@@ -1,26 +1,14 @@
-# Stage 1: Build
-FROM maven:3.9-eclipse-temurin-21 AS build
+# Use Java 21 base image
+FROM eclipse-temurin:21-jdk
+
+# Set working directory
 WORKDIR /app
 
-# 1. Pura project copy karein (Jisme libs folder aur pom.xml ho)
-COPY . .
+# Copy jar file
+COPY target/*.jar app.jar
 
-# 2. Jo naya common.jar aapne dala hai, use manually Maven repo me install karein
-# Note: Agar aapki jar 'libs/common.jar' me hai toh niche wala path sahi hai
-RUN mvn install:install-file \
-    -Dfile=libs/common.jar \
-    -DgroupId=com.project \
-    -DartifactId=common \
-    -Dversion=0.0.1-SNAPSHOT \
-    -Dpackaging=jar
+# Expose port (HF uses 7860 internally)
+EXPOSE 7860
 
-# 3. Ab Agency (Client) ko build karein
-RUN mvn clean package -DskipTests
-
-# Stage 2: Run
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run app on port 7860
+ENTRYPOINT ["java","-jar","/app/app.jar","--server.port=7860"]
