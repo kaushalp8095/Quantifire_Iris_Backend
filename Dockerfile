@@ -1,14 +1,14 @@
-# Use Java 21 base image
-FROM eclipse-temurin:21-jdk
-
-# Set working directory
+# Stage 1: Build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy jar file
-COPY target/*.jar app.jar
+# Stage 2: Run
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Expose port (HF uses 7860 internally)
 EXPOSE 7860
 
-# Run app on port 7860
-ENTRYPOINT ["java","-jar","/app/app.jar","--server.port=7860"]
+ENTRYPOINT ["java","-jar","app.jar","--server.port=7860"]
