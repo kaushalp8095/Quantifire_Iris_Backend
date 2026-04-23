@@ -78,7 +78,7 @@ public class agencyLoginController {
         } catch (Exception e) {
             System.err.println("Location API Error: " + e.getMessage());
         }
-        return "India"; // Default fallback
+        return "Unknown Location"; // Default fallback
     }
 
     // ==========================================
